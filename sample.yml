@@ -2,10 +2,10 @@
 - name: Sample Ansible Playbook
   hosts: localhost
   gather_facts: true
-  
+
   vars:
     # Mandatory account identifier - replace XXX with actual 3-character code
-    gsma_code: "XXX"
+    gsma_code: "AAI"
     
     # Return code variables
     rc_group: "success"
