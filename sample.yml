@@ -1,0 +1,65 @@
+---
+- name: Sample Ansible Playbook
+  hosts: localhost
+  gather_facts: true
+  
+  vars:
+    # Mandatory account identifier - replace XXX with actual 3-character code
+    gsma_code: "XXX"
+    
+    # Return code variables
+    rc_group: "success"
+    rc_number: 0
+    rc_support: "account"
+    rc_message: "Playbook executed successfully"
+  
+  tasks:
+    - name: Validate mandatory variables
+      ansible.builtin.assert:
+        that:
+          - gsma_code is defined
+          - gsma_code | length == 3
+        fail_msg: "gsma_code must be defined as a 3-character account identifier"
+        success_msg: "Variable validation passed"
+      register: validation_result
+      failed_when: false
+    
+    - name: Set misconfiguration return code on validation failure
+      ansible.builtin.set_fact:
+        rc_group: "misconfiguration"
+        rc_number: 200
+        rc_message: "Required variable validation failed: gsma_code"
+      when: validation_result.failed | default(false)
+    
+    - name: Display system information
+      ansible.builtin.debug:
+        msg: |
+          Hostname: {{ ansible_hostname }}
+          OS Family: {{ ansible_os_family }}
+          Distribution: {{ ansible_distribution }} {{ ansible_distribution_version }}
+          Account Code: {{ gsma_code }}
+      when: rc_group == "success"
+    
+    - name: Execute platform-specific tasks (Linux)
+      ansible.builtin.command: uname -a
+      register: linux_info
+      when: 
+        - ansible_os_family in ['RedHat', 'Debian', 'Suse']
+        - rc_group == "success"
+      changed_when: false
+    
+    - name: Execute platform-specific tasks (Windows)
+      ansible.windows.win_shell: |
+        Get-ComputerInfo | Select-Object CsName, OsName, OsVersion
+      register: windows_info
+      when: 
+        - ansible_os_family == 'Windows'
+        - rc_group == "success"
+      changed_when: false
+    
+    - name: Display execution results
+      ansible.builtin.debug:
+        msg: |
+          Return Code Group: {{ rc_group }}
+          Return Code Number: {{ rc_number }}
+          Return Code Message: {{ rc_message }}
